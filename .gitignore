@@ -1,0 +1,12 @@
+node_modules/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+.DS_Store
+*.pid
+workers/
+.env
+coverage/
+.nyc_output/
+
