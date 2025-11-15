@@ -25,12 +25,15 @@ async function executeCommand(command, timeout = 300000) {
     const child = exec(command, { timeout }, (error, stdout, stderr) => {
       const duration = Date.now() - startTime;
       if (error) {
+        // error.code can be exit code (number) or error code (string like 'ENOENT')
+        const exitCode = typeof error.code === 'number' ? error.code : (error.code === 'ENOENT' ? 127 : 1);
         resolve({
           success: false,
-          exitCode: error.code || 1,
+          exitCode: exitCode,
           stdout: stdout || '',
           stderr: stderr || error.message,
-          duration
+          duration,
+          error: error.message
         });
       } else {
         resolve({

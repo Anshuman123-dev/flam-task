@@ -21,8 +21,10 @@
   "license": "MIT",
   "dependencies": {
     "commander": "^11.1.0",
-    "better-sqlite3": "^9.2.2",
-    "chalk": "^4.1.2"
+    "mongodb": "^6.3.0",
+    "chalk": "^4.1.2",
+    "dotenv": "^16.3.1",
+    "uuid": "^9.0.1"
   },
   "engines": {
     "node": ">=14.0.0"

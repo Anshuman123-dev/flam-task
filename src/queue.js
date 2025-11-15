@@ -8,14 +8,14 @@ class Queue {
     this.config = new Config();
   }
 
-  enqueue(jobData) {
+  async enqueue(jobData) {
     // Validate job data
     if (!jobData.id || !jobData.command) {
       throw new Error('Job must have id and command fields');
     }
 
     // Check if job already exists
-    const existing = this.storage.getJob(jobData.id);
+    const existing = await this.storage.getJob(jobData.id);
     if (existing) {
       throw new Error(`Job with id ${jobData.id} already exists`);
     }
@@ -28,19 +28,19 @@ class Queue {
       max_retries: jobData.max_retries || this.config.get('max_retries')
     };
 
-    return this.storage.createJob(job);
+    return await this.storage.createJob(job);
   }
 
-  getJob(id) {
-    return this.storage.getJob(id);
+  async getJob(id) {
+    return await this.storage.getJob(id);
   }
 
-  listJobs(state = null) {
-    return this.storage.listJobs(state);
+  async listJobs(state = null) {
+    return await this.storage.listJobs(state);
   }
 
-  getStats() {
-    const stats = this.storage.getStats();
+  async getStats() {
+    const stats = await this.storage.getStats();
     const statsMap = {};
     stats.forEach(stat => {
       statsMap[stat.state] = stat.count;
@@ -56,20 +56,20 @@ class Queue {
     };
   }
 
-  getDLQJobs() {
-    return this.storage.getDLQJobs();
+  async getDLQJobs() {
+    return await this.storage.getDLQJobs();
   }
 
-  retryDLQJob(id) {
+  async retryDLQJob(id) {
     const maxRetries = this.config.get('max_retries');
-    return this.storage.retryDLQJob(id, maxRetries);
+    return await this.storage.retryDLQJob(id, maxRetries);
   }
 
-  acquireJob(workerId) {
-    return this.storage.acquireJob(workerId);
+  async acquireJob(workerId) {
+    return await this.storage.acquireJob(workerId);
   }
 
-  completeJob(jobId, result) {
+  async completeJob(jobId, result) {
     const updates = {
       state: 'completed',
       output: result.stdout,
@@ -80,11 +80,11 @@ class Queue {
       updates.error = result.stderr;
     }
     
-    return this.storage.updateJob(jobId, updates);
+    return await this.storage.updateJob(jobId, updates);
   }
 
-  failJob(jobId, result, workerId) {
-    const job = this.storage.getJob(jobId);
+  async failJob(jobId, result, workerId) {
+    const job = await this.storage.getJob(jobId);
     if (!job) return null;
 
     const attempts = job.attempts + 1;
@@ -93,7 +93,7 @@ class Queue {
 
     if (attempts >= maxRetries) {
       // Move to DLQ
-      return this.storage.updateJob(jobId, {
+      return await this.storage.updateJob(jobId, {
         state: 'dead',
         attempts,
         error: result.stderr || result.error || 'Max retries exceeded',
@@ -106,7 +106,7 @@ class Queue {
       const delaySeconds = calculateBackoff(attempts, backoffBase);
       const nextRetryAt = new Date(Date.now() + delaySeconds * 1000).toISOString();
       
-      return this.storage.updateJob(jobId, {
+      return await this.storage.updateJob(jobId, {
         state: 'failed',
         attempts,
         error: result.stderr || result.error || 'Job execution failed',
@@ -117,13 +117,13 @@ class Queue {
     }
   }
 
-  releaseJob(jobId) {
-    const job = this.storage.getJob(jobId);
+  async releaseJob(jobId) {
+    const job = await this.storage.getJob(jobId);
     if (!job) return null;
 
     // If job was processing, reset to pending (in case of worker crash)
     if (job.state === 'processing') {
-      return this.storage.updateJob(jobId, {
+      return await this.storage.updateJob(jobId, {
         state: 'pending',
         worker_id: null
       });
@@ -132,10 +132,9 @@ class Queue {
     return job;
   }
 
-  close() {
-    this.storage.close();
+  async close() {
+    await this.storage.close();
   }
 }
 
 module.exports = Queue;
-
